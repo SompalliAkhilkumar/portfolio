@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import * as THREE from 'three';
 import { ArrowDown, ArrowRight, ArrowUpRight, Github, Linkedin, Mail, Menu, MoveUpRight, Phone, X } from 'lucide-react';
 
@@ -296,8 +296,77 @@ function ArchitectureScene() {
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const depthSurfaceRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!finePointer || reducedMotion) return;
+
+    let frame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        document.documentElement.style.setProperty('--pointer-x', `${pointerX}px`);
+        document.documentElement.style.setProperty('--pointer-y', `${pointerY}px`);
+        cursorRef.current?.classList.add('is-visible');
+        const overInteractive = document.elementFromPoint(pointerX, pointerY)?.closest('a, button, [data-depth]');
+        cursorRef.current?.classList.toggle('is-interactive', Boolean(overInteractive));
+        frame = 0;
+      });
+    };
+    const hideCursor = () => cursorRef.current?.classList.remove('is-visible', 'is-interactive');
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('blur', hideCursor);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('blur', hideCursor);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const resetDepthSurface = () => {
+    const surface = depthSurfaceRef.current;
+    if (!surface) return;
+    surface.classList.remove('depth-active');
+    surface.style.removeProperty('--tilt-x');
+    surface.style.removeProperty('--tilt-y');
+    depthSurfaceRef.current = null;
+  };
+
+  const handleDepthPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (
+      event.pointerType === 'touch' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      resetDepthSurface();
+      return;
+    }
+    const surface = (event.target as Element).closest<HTMLElement>('[data-depth]');
+    if (surface !== depthSurfaceRef.current) resetDepthSurface();
+    if (!surface) return;
+    depthSurfaceRef.current = surface;
+    const bounds = surface.getBoundingClientRect();
+    const horizontal = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const vertical = (event.clientY - bounds.top) / bounds.height - 0.5;
+    surface.style.setProperty('--tilt-x', `${-vertical * 3}deg`);
+    surface.style.setProperty('--tilt-y', `${horizontal * 4}deg`);
+    surface.classList.add('depth-active');
+  };
+
   return (
-    <main className="page-grain min-h-[100dvh] overflow-hidden">
+    <main
+      className="page-grain min-h-[100dvh] overflow-hidden"
+      onPointerMove={handleDepthPointerMove}
+      onPointerLeave={resetDepthSurface}
+    >
+      <div className="cursor-orbit" ref={cursorRef} aria-hidden="true" />
       <header className="sticky top-0 z-30 border-b border-[#202b3a]/15 bg-[#efede5]/90 backdrop-blur-md">
         <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between px-5 md:px-10">
           <a href="#top" aria-label="Sompalli Akhil Kumar — home" className="flex items-center gap-3">
@@ -356,7 +425,7 @@ function App() {
         </div>
         <div className="divide-y divide-[#202b3a]/20 border-y border-[#202b3a]/20">
           {projects.map((project) => (
-            <article key={project.number} className="project-card grid gap-6 px-3 py-8 md:grid-cols-[.24fr_1fr_.34fr] md:gap-10 md:px-5 md:py-12">
+            <article key={project.number} data-depth className="project-card grid gap-6 px-3 py-8 md:grid-cols-[.24fr_1fr_.34fr] md:gap-10 md:px-5 md:py-12">
               <div className="flex items-start justify-between md:block">
                 <span className="serif text-4xl text-[#bd674e]">{project.number}</span>
                 <span className="md:hidden mono text-[9px] uppercase tracking-[.12em] text-[#707871]">{project.type}</span>
@@ -384,7 +453,7 @@ function App() {
             <span className="mono text-[10px] uppercase tracking-[.17em] text-[#e39b7b]">02 / Experience</span>
             <h2 className="serif mt-8 text-5xl leading-[.98] tracking-[-.04em] md:text-6xl">Learning<br />in the field.</h2>
           </div>
-          <article className="border-t border-[#f0eee6]/25 pt-5 md:mt-16">
+          <article data-depth className="border-t border-[#f0eee6]/25 pt-5 md:mt-16">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div>
                 <h3 className="serif text-3xl md:text-4xl">Machine Learning Intern</h3>
@@ -407,7 +476,7 @@ function App() {
             <h2 className="serif mt-8 text-5xl leading-[.98] tracking-[-.04em] md:text-6xl">Two ways<br />of seeing.</h2>
           </div>
           <div className="divide-y divide-[#202b3a]/20 border-y border-[#202b3a]/20">
-            <article className="grid gap-5 py-7 sm:grid-cols-[1fr_auto] sm:items-end">
+            <article data-depth className="grid gap-5 py-7 sm:grid-cols-[1fr_auto] sm:items-end">
               <div>
                 <p className="mono text-[9px] uppercase tracking-[.15em] text-[#bd674e]">Bachelor of Technology · Computer Science & Engineering</p>
                 <h3 className="serif mt-3 text-2xl leading-tight md:text-3xl">Sri Venkateswara University<br className="hidden md:block" /> College of Engineering</h3>
@@ -418,7 +487,7 @@ function App() {
                 <span className="mono text-[9px] uppercase tracking-[.13em] text-[#717873]">Nov 2022 — May 2026</span>
               </div>
             </article>
-            <article className="grid gap-5 py-7 sm:grid-cols-[1fr_auto] sm:items-end">
+            <article data-depth className="grid gap-5 py-7 sm:grid-cols-[1fr_auto] sm:items-end">
               <div>
                 <p className="mono text-[9px] uppercase tracking-[.15em] text-[#bd674e]">Bachelor of Science · Data Science & Applications</p>
                 <h3 className="serif mt-3 text-2xl leading-tight md:text-3xl">Indian Institute of Technology<br className="hidden md:block" /> Madras</h3>
@@ -442,7 +511,7 @@ function App() {
             </div>
             <div className="grid sm:grid-cols-2">
               {skills.map(([name, values], i) => (
-                <div key={name} className={`border-t border-[#202b3a]/20 py-4 ${i % 2 === 0 ? 'sm:mr-6' : 'sm:ml-6'}`}>
+                <div key={name} data-depth className={`border-t border-[#202b3a]/20 py-4 ${i % 2 === 0 ? 'sm:mr-6' : 'sm:ml-6'}`}>
                   <h3 className="mono text-[9px] uppercase tracking-[.15em] text-[#bd674e]">{name}</h3>
                   <p className="mt-2 text-[12px] leading-[1.75] text-[#36444d]">{values}</p>
                 </div>
@@ -459,20 +528,20 @@ function App() {
             <h2 className="serif mt-8 text-5xl leading-[.98] tracking-[-.04em] md:text-6xl">Earned<br />curiosity.</h2>
           </div>
           <div className="grid content-start gap-0 sm:grid-cols-2">
-            <div className="border-t border-[#202b3a]/20 py-5 sm:mr-6">
+            <div data-depth className="border-t border-[#202b3a]/20 py-5 sm:mr-6">
               <span className="mono text-[9px] uppercase tracking-[.14em] text-[#bd674e]">Oracle Cloud Infrastructure</span>
               <p className="mt-2 serif text-xl">Data Science Professional</p>
               <p className="mt-1 serif text-xl">Generative AI Professional</p>
             </div>
-            <div className="border-t border-[#202b3a]/20 py-5 sm:ml-6">
+            <div data-depth className="border-t border-[#202b3a]/20 py-5 sm:ml-6">
               <span className="mono text-[9px] uppercase tracking-[.14em] text-[#bd674e]">NPTEL / SWAYAM</span>
               <p className="mt-2 text-[13px] leading-6">Data Analytics<br />Internet of Things<br />Cloud Computing</p>
             </div>
-            <div className="border-t border-[#202b3a]/20 py-5 sm:mr-6">
+            <div data-depth className="border-t border-[#202b3a]/20 py-5 sm:mr-6">
               <span className="mono text-[9px] uppercase tracking-[.14em] text-[#bd674e]">Coursera · Google</span>
               <p className="mt-2 serif text-xl">Google Advanced Data Analytics</p>
             </div>
-            <div className="border-t border-[#202b3a]/20 py-5 sm:ml-6">
+            <div data-depth className="border-t border-[#202b3a]/20 py-5 sm:ml-6">
               <span className="mono text-[9px] uppercase tracking-[.14em] text-[#bd674e]">Coursera · IBM</span>
               <p className="mt-2 serif text-xl">IBM Data Science</p>
             </div>
@@ -488,12 +557,12 @@ function App() {
               <p className="mt-8 mono text-[10px] uppercase tracking-[.15em] text-[#c0c9c8]">Have a good problem?</p>
             </div>
             <div>
-              <h2 className="serif max-w-3xl text-[clamp(3rem,8vw,7rem)] leading-[.9] tracking-[-.06em]">Let&apos;s make<br /><em className="font-medium text-[#e39b7b]">something matter.</em></h2>
+              <h2 data-depth className="serif max-w-3xl text-[clamp(3rem,8vw,7rem)] leading-[.9] tracking-[-.06em]">Let&apos;s make<br /><em className="font-medium text-[#e39b7b]">something matter.</em></h2>
               <a href="mailto:akhilsompalli007@gmail.com" className="mt-8 inline-flex items-center gap-3 border-b border-[#e39b7b]/70 pb-2 text-sm hover:text-[#e39b7b]">akhilsompalli007@gmail.com <MoveUpRight size={15} /></a>
               <div className="mt-9 flex flex-wrap gap-x-7 gap-y-4 text-[12px] text-[#d4dad5]">
                 <a className="inline-flex items-center gap-2 hover:text-[#e39b7b]" href="tel:+917671838967"><Phone size={14} /> +91 76718 38967</a>
                 <a className="inline-flex items-center gap-2 hover:text-[#e39b7b]" href="https://github.com/SompalliAkhilKumar" target="_blank" rel="noreferrer"><Github size={15} /> GitHub <ArrowRight size={12} /></a>
-                <a className="inline-flex items-center gap-2 hover:text-[#e39b7b]" href="https://www.linkedin.com/in/sompalli-akhil-kumar" target="_blank" rel="noreferrer"><Linkedin size={15} /> LinkedIn <ArrowRight size={12} /></a>
+                <a className="inline-flex items-center gap-2 hover:text-[#e39b7b]" href="https://www.linkedin.com/in/sompalli-akhil-kumar-60139b294/?isSelfProfile=true" target="_blank" rel="noreferrer"><Linkedin size={15} /> LinkedIn <ArrowRight size={12} /></a>
                 <a className="inline-flex items-center gap-2 hover:text-[#e39b7b]" href="mailto:akhilsompalli007@gmail.com"><Mail size={14} /> Email</a>
               </div>
             </div>
