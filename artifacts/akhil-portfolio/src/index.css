@@ -134,9 +134,9 @@ a { color: inherit; }
 .fallback-model {
   transform-box: fill-box;
   transform-origin: center;
-  animation: pavilion-drift 7s ease-in-out infinite alternate;
+  animation: network-drift 7s ease-in-out infinite alternate;
 }
-@keyframes pavilion-drift {
+@keyframes network-drift {
   from { transform: translateY(2px); }
   to { transform: translateY(-3px); }
 }

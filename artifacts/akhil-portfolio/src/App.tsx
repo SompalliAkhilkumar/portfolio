@@ -68,7 +68,7 @@ const skills = [
   ['Tools', 'Git · GitHub · Jupyter · Pytest'],
 ];
 
-function ArchitectureScene() {
+function IntelligenceNetworkScene() {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [webglSupported, setWebglSupported] = useState(true);
@@ -98,7 +98,7 @@ function ArchitectureScene() {
     let theta = 0.62;
     let phi = 1.12;
     let radius = 15;
-    const target = new THREE.Vector3(0, 1.1, 0);
+    const target = new THREE.Vector3(0, 1.8, 0);
     const updateCamera = () => {
       camera.position.set(
         target.x + radius * Math.sin(phi) * Math.sin(theta),
@@ -117,7 +117,6 @@ function ArchitectureScene() {
     coolFill.position.set(7, 5, -5);
     scene.add(coolFill);
 
-    const stone = new THREE.MeshStandardMaterial({ color: '#c3bdb0', roughness: 0.86 });
     const paleStone = new THREE.MeshStandardMaterial({ color: '#d5cec0', roughness: 0.8 });
     const dark = new THREE.MeshStandardMaterial({ color: '#26394a', roughness: 0.5, metalness: 0.15 });
     const rust = new THREE.MeshStandardMaterial({ color: '#c77355', roughness: 0.58 });
@@ -131,36 +130,82 @@ function ArchitectureScene() {
       return mesh;
     };
 
-    // A walkable plinth, a rhythm of colonnades and offset data-like volumes.
-    box(10, 0.28, 7, 0, -0.08, 0, paleStone);
-    box(4.15, 0.17, 2.7, -1.72, 0.14, -0.62, dark);
-    box(2.55, 0.16, 2.55, 2.04, 0.13, 1.16, rust);
-    for (let x = -3.75; x <= 3.76; x += 1.25) {
-      box(0.12, 3.4, 0.12, x, 1.82, -2.35, dark);
-      box(0.12, 3.4, 0.12, x, 1.82, 2.38, dark);
+    // A circuit-board plinth supports a layered neural network and inference core.
+    box(10.2, 0.28, 6.4, 0, -0.08, 0, paleStone);
+    box(8.8, 0.14, 5.2, 0, 0.13, 0, dark);
+    const traceMaterial = new THREE.MeshBasicMaterial({ color: '#c77355', transparent: true, opacity: 0.48 });
+    for (let i = -4; i <= 4; i++) {
+      const verticalTrace = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.012, 4.5), traceMaterial);
+      verticalTrace.position.set(i * 0.82, 0.205, 0);
+      structure.add(verticalTrace);
+      const horizontalTrace = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.012, 0.018), traceMaterial);
+      horizontalTrace.position.set(0, 0.21, i * 0.43);
+      structure.add(horizontalTrace);
     }
-    box(8.5, 0.18, 0.18, 0, 3.55, -2.35, dark);
-    box(8.5, 0.18, 0.18, 0, 3.55, 2.38, dark);
-    box(0.2, 0.18, 4.9, -3.75, 3.55, 0, dark);
-    box(0.2, 0.18, 4.9, 3.75, 3.55, 0, dark);
-    // Floating, shifted room volumes create a small inhabitable composition.
-    box(3.5, 1.72, 2.25, -1.85, 1.05, -0.85, paleStone);
-    box(2.35, 1.24, 2.05, 1.68, 0.81, 1.05, stone);
-    box(2.18, 0.13, 2.3, 1.63, 1.51, 1.05, rust);
-    box(0.09, 1.25, 2.08, 0.48, 0.84, 1.05, dark);
-    box(0.9, 1.45, 0.07, -2.5, 1.05, 0.28, glass);
-    box(0.8, 1.45, 0.07, -1.12, 1.05, 0.28, glass);
-    box(0.07, 1.12, 1.18, -0.06, 0.85, -0.67, glass);
-    // Slender suspended beams and the finely gridded site.
-    for (let i = -5; i <= 5; i++) {
-      const lineX = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.012, 9.8), new THREE.MeshBasicMaterial({ color: '#697575', transparent: true, opacity: 0.22 }));
-      lineX.position.set(i * 0.8, -0.19, 0);
-      structure.add(lineX);
-      const lineZ = new THREE.Mesh(new THREE.BoxGeometry(10, 0.012, 0.018), new THREE.MeshBasicMaterial({ color: '#697575', transparent: true, opacity: 0.22 }));
-      lineZ.position.set(0, -0.185, i * 0.8);
-      structure.add(lineZ);
+    box(1.35, 0.42, 1.25, 0, 0.49, 1.68, dark);
+    box(0.86, 0.08, 0.74, 0, 0.74, 1.68, glass);
+    box(0.46, 0.035, 0.08, 0, 0.8, 1.68, rust);
+    for (let i = 0; i < 4; i++) {
+      box(0.04, 0.025, 0.18, -0.48 + i * 0.32, 0.73, 2.34, rust);
+      box(0.04, 0.025, 0.18, -0.48 + i * 0.32, 0.73, 1.02, rust);
     }
-    for (let i = 0; i < 5; i++) box(0.04, 0.04, 4.4, -2 + i * 1, 3.72, 0.1, rust);
+
+    const layerCounts = [4, 5, 5, 3];
+    const layerX = [-4, -1.35, 1.35, 4];
+    const nodeColors = ['#92b9b8', '#c77355', '#86aeb5', '#d48b6d'];
+    const nodePositions: THREE.Vector3[][] = [];
+    const networkNodes: THREE.Mesh[] = [];
+    const nodeGeometry = new THREE.SphereGeometry(0.16, 18, 18);
+    layerCounts.forEach((count, layerIndex) => {
+      const material = new THREE.MeshStandardMaterial({
+        color: nodeColors[layerIndex],
+        emissive: nodeColors[layerIndex],
+        emissiveIntensity: 0.22,
+        metalness: 0.28,
+        roughness: 0.32,
+      });
+      const positions: THREE.Vector3[] = [];
+      for (let nodeIndex = 0; nodeIndex < count; nodeIndex++) {
+        const position = new THREE.Vector3(
+          layerX[layerIndex],
+          2.72 + (nodeIndex - (count - 1) / 2) * 0.74,
+          (nodeIndex + layerIndex) % 2 === 0 ? -0.5 : 0.5,
+        );
+        positions.push(position);
+        const node = new THREE.Mesh(nodeGeometry, material);
+        node.position.copy(position);
+        structure.add(node);
+        networkNodes.push(node);
+      }
+      nodePositions.push(positions);
+    });
+
+    const edgePositions: number[] = [];
+    const connections: Array<[THREE.Vector3, THREE.Vector3]> = [];
+    for (let layerIndex = 0; layerIndex < nodePositions.length - 1; layerIndex++) {
+      for (const from of nodePositions[layerIndex]) {
+        for (const to of nodePositions[layerIndex + 1]) {
+          edgePositions.push(from.x, from.y, from.z, to.x, to.y, to.z);
+          connections.push([from, to]);
+        }
+      }
+    }
+    const edgeGeometry = new THREE.BufferGeometry();
+    edgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(edgePositions, 3));
+    structure.add(new THREE.LineSegments(
+      edgeGeometry,
+      new THREE.LineBasicMaterial({ color: '#91a9a8', transparent: true, opacity: 0.48 }),
+    ));
+
+    const pulseLinks = connections.filter((_, index) => index % 8 === 2);
+    const pulseGeometry = new THREE.SphereGeometry(0.06, 12, 12);
+    const pulseMaterial = new THREE.MeshBasicMaterial({ color: '#f0b17f' });
+    const dataPulses = pulseLinks.map((connection, index) => {
+      const pulse = new THREE.Mesh(pulseGeometry, pulseMaterial);
+      structure.add(pulse);
+      return { pulse, connection, offset: index / pulseLinks.length };
+    });
+
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#e6e2d7', roughness: 1 }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.28;
@@ -215,7 +260,15 @@ function ArchitectureScene() {
         theta += 0.00055;
         updateCamera();
       }
-      structure.rotation.y = Math.sin(frame * 0.002) * 0.012;
+      structure.rotation.y = Math.sin(frame * 0.0016) * 0.035;
+      structure.position.y = Math.sin(frame * 0.0028) * 0.035;
+      networkNodes.forEach((node, index) => {
+        node.scale.setScalar(1 + Math.sin(frame * 0.035 + index * 0.58) * 0.045);
+      });
+      dataPulses.forEach(({ pulse, connection, offset }) => {
+        const progress = (frame * 0.004 + offset) % 1;
+        pulse.position.lerpVectors(connection[0], connection[1], progress);
+      });
       renderer.render(scene, camera);
       frame++;
     };
@@ -240,56 +293,72 @@ function ArchitectureScene() {
     };
   }, []);
 
+  const fallbackLayers = [
+    [{ x: 178, y: 192 }, { x: 178, y: 235 }, { x: 178, y: 278 }, { x: 178, y: 321 }],
+    [{ x: 330, y: 168 }, { x: 330, y: 211 }, { x: 330, y: 254 }, { x: 330, y: 297 }, { x: 330, y: 340 }],
+    [{ x: 500, y: 168 }, { x: 500, y: 211 }, { x: 500, y: 254 }, { x: 500, y: 297 }, { x: 500, y: 340 }],
+    [{ x: 650, y: 203 }, { x: 650, y: 254 }, { x: 650, y: 305 }],
+  ];
+
   return (
-    <div className="architecture-canvas relative h-full min-h-[380px] w-full overflow-hidden md:min-h-[540px]" ref={host} aria-label={webglSupported ? 'Interactive 3D architectural pavilion. Drag to orbit and scroll to zoom.' : 'Architectural pavilion illustration.'}>
+    <div className="architecture-canvas relative h-full min-h-[380px] w-full overflow-hidden md:min-h-[540px]" ref={host} aria-label={webglSupported ? 'Interactive 3D machine-learning neural network. Drag to orbit and scroll to zoom.' : 'Machine-learning neural network illustration.'}>
       {!webglSupported && (
-        <div className="architecture-fallback absolute inset-0 grid place-items-center" aria-label="Architectural pavilion illustration">
-          <svg className="h-full w-full" viewBox="0 0 800 540" role="img" aria-label="Isometric architectural pavilion on a gridded site">
+        <div className="architecture-fallback absolute inset-0 grid place-items-center" aria-label="Machine-learning neural network illustration">
+          <svg className="h-full w-full" viewBox="0 0 800 540" role="img" aria-label="Isometric neural network with data links and an inference core">
             <defs>
-              <pattern id="site-grid" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="skewY(-29) scale(1 .72)">
+              <pattern id="neural-grid" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="skewY(-29) scale(1 .72)">
                 <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#79837e" strokeOpacity=".27" strokeWidth="1" />
               </pattern>
-              <linearGradient id="glass-gradient" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0" stopColor="#abc0bd" stopOpacity=".8" />
-                <stop offset="1" stopColor="#708d91" stopOpacity=".6" />
+              <linearGradient id="core-gradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stopColor="#a7c0bd" />
+                <stop offset="1" stopColor="#667f88" />
               </linearGradient>
             </defs>
-            <path d="M80 340 400 156 720 340 400 524Z" fill="url(#site-grid)" opacity=".9" />
-            <path d="M110 350 400 182 690 350 400 518Z" fill="#d6d0c3" stroke="#9c9b8d" strokeWidth="1.5" />
-            <path d="M110 350 400 518 400 535 110 367Z" fill="#b6afa1" />
-            <path d="M400 518 690 350 690 367 400 535Z" fill="#918f86" />
+            <path d="M80 365 400 180 720 365 400 550Z" fill="url(#neural-grid)" opacity=".9" />
+            <path d="M110 365 400 198 690 365 400 532Z" fill="#d6d0c3" stroke="#9c9b8d" strokeWidth="1.5" />
+            <path d="M110 365 400 532 400 548 110 381Z" fill="#b6afa1" />
+            <path d="M400 532 690 365 690 381 400 548Z" fill="#918f86" />
             <g className="fallback-model">
-              <path d="M216 327 400 220 584 327 400 434Z" fill="#bcb5a8" stroke="#777d78" strokeWidth="2" />
-              <path d="M216 327 400 434 400 449 216 342Z" fill="#99978f" />
-              <path d="M400 434 584 327 584 342 400 449Z" fill="#858982" />
-              <path d="M235 314 235 230 251 221 251 323Z" fill="#26394a" />
-              <path d="M235 230 400 135 416 144 251 239Z" fill="#415668" />
-              <path d="M251 323 251 239 416 144 416 348Z" fill="#2c4052" opacity=".2" />
-              <path d="M384 412 384 326 400 317 400 421Z" fill="#26394a" />
-              <path d="M400 421 400 317 416 326 416 430Z" fill="#405365" />
-              <path d="M549 332 549 248 565 239 565 341Z" fill="#26394a" />
-              <path d="M384 326 549 231 565 240 400 335Z" fill="#526577" />
-              <path d="M214 229 400 121 586 229 400 337Z" fill="#d4cdbf" stroke="#26394a" strokeWidth="4" />
-              <path d="M214 229 400 337 400 351 214 243Z" fill="#aaa597" />
-              <path d="M400 337 586 229 586 243 400 351Z" fill="#85877f" />
-              <path d="M279 282 355 238 355 325 279 369Z" fill="url(#glass-gradient)" stroke="#26394a" strokeWidth="2" />
-              <path d="M279 282 293 290 293 360 279 369Z" fill="#f0eadc" fillOpacity=".65" />
-              <path d="M452 274 518 236 518 315 452 353Z" fill="#c77355" />
-              <path d="M518 236 536 246 536 325 518 315Z" fill="#9f553f" />
-              <path d="M452 274 518 236 536 246 470 285Z" fill="#d48b6d" />
-              <path d="M362 216 400 194 439 216" fill="none" stroke="#c77355" strokeWidth="5" />
-              <path d="M400 195V306M307 248V354M493 248V355" fill="none" stroke="#e8e0d1" strokeOpacity=".72" strokeWidth="2" />
-              <path d="M190 400 400 522M610 400 400 522" stroke="#26394a" strokeOpacity=".24" strokeWidth="1" />
-              <path d="M400 522 400 186" stroke="#26394a" strokeOpacity=".16" strokeWidth="1" />
+              <path d="M177 354 400 226 623 354 400 482Z" fill="#bcb5a8" stroke="#777d78" strokeWidth="2" />
+              <path d="M177 354 400 482 400 498 177 370Z" fill="#99978f" />
+              <path d="M400 482 623 354 623 370 400 498Z" fill="#858982" />
+              {fallbackLayers.slice(0, -1).flatMap((layer, layerIndex) =>
+                layer.flatMap((source, sourceIndex) =>
+                  fallbackLayers[layerIndex + 1].map((target, targetIndex) => (
+                    <path
+                      key={`edge-${layerIndex}-${sourceIndex}-${targetIndex}`}
+                      d={`M${source.x} ${source.y} L${target.x} ${target.y}`}
+                      fill="none"
+                      stroke={layerIndex === 1 ? '#c77355' : '#6f9296'}
+                      strokeOpacity=".44"
+                      strokeWidth="1.5"
+                    />
+                  )),
+                ),
+              )}
+              {fallbackLayers.flatMap((layer, layerIndex) =>
+                layer.map((node, nodeIndex) => (
+                  <g key={`node-${layerIndex}-${nodeIndex}`}>
+                    <circle cx={node.x} cy={node.y} r="11" fill={layerIndex % 2 === 0 ? '#83a8ab' : '#c77355'} fillOpacity=".25" />
+                    <circle cx={node.x} cy={node.y} r="6" fill={layerIndex % 2 === 0 ? '#3e6c72' : '#a45640'} stroke="#eee8da" strokeWidth="1.5" />
+                    <circle cx={node.x - 1.5} cy={node.y - 1.5} r="1.5" fill="#f3eee2" />
+                  </g>
+                )),
+              )}
+              <path d="M335 376 400 339 465 376 465 425 400 462 335 425Z" fill="#26394a" stroke="#e39b7b" strokeWidth="2" />
+              <path d="M356 382 400 357 444 382 444 414 400 439 356 414Z" fill="url(#core-gradient)" stroke="#d5cec0" strokeOpacity=".7" />
+              <path d="M376 397 400 383 424 397 400 411Z" fill="#c77355" />
+              <path d="M400 411V430M366 392 347 381M434 392 453 381" fill="none" stroke="#e39b7b" strokeWidth="2" />
+              <text x="400" y="474" textAnchor="middle" fill="#f0eee6" fontSize="8" fontFamily="monospace" letterSpacing="1.5">INFERENCE CORE</text>
             </g>
           </svg>
         </div>
       )}
       {!ready && <div className="absolute inset-0 grid place-items-center bg-[#e6e2d7]"><span className="mono text-[10px] uppercase tracking-[.24em] text-[#59646a]">Constructing spatial model</span></div>}
       <div className="pointer-events-none absolute bottom-5 left-5 z-10 flex items-center gap-2 text-[10px] uppercase tracking-[.17em] text-[#38464a]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#c77355]" /> {webglSupported ? <>Drag to orbit <span className="mx-1 opacity-40">/</span> Scroll to zoom</> : 'Static architectural preview'}
+        <span className="h-1.5 w-1.5 rounded-full bg-[#c77355]" /> {webglSupported ? <>Drag to orbit <span className="mx-1 opacity-40">/</span> Scroll to zoom</> : 'Static neural network preview'}
       </div>
-      <div className="pointer-events-none absolute right-5 top-5 z-10 mono text-[10px] tracking-[.15em] text-[#66706d]">FIG. 01 — COMPUTATIONAL PAVILION</div>
+      <div className="pointer-events-none absolute right-5 top-5 z-10 mono text-[10px] tracking-[.15em] text-[#66706d]">FIG. 01 — INTELLIGENCE NETWORK</div>
     </div>
   );
 }
@@ -406,7 +475,7 @@ function App() {
           </div>
           <div className="relative min-w-0 border border-[#202b3a]/15 bg-[#e6e2d7]">
             <div className="absolute -left-3 top-8 z-10 hidden h-16 w-px bg-[#bd674e] lg:block" />
-            <ArchitectureScene />
+            <IntelligenceNetworkScene />
           </div>
         </div>
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-[#202b3a]/15 pt-4 mono text-[9px] uppercase tracking-[.15em] text-[#69716e]">
@@ -483,7 +552,7 @@ function App() {
                 <p className="mt-2 text-[13px] text-[#667078]">Tirupati</p>
               </div>
               <div className="flex items-end justify-between gap-8 sm:flex-col sm:items-end">
-                <span className="serif text-3xl">8.38<span className="ml-1 text-base text-[#758078]">/ 10.00</span></span>
+                <span className="serif text-3xl">8.5<span className="ml-1 text-base text-[#758078]">/ 10.00</span></span>
                 <span className="mono text-[9px] uppercase tracking-[.13em] text-[#717873]">Nov 2022 — May 2026</span>
               </div>
             </article>
@@ -493,7 +562,7 @@ function App() {
                 <h3 className="serif mt-3 text-2xl leading-tight md:text-3xl">Indian Institute of Technology<br className="hidden md:block" /> Madras</h3>
               </div>
               <div className="flex items-end justify-between gap-8 sm:flex-col sm:items-end">
-                <span className="serif text-3xl">7.52<span className="ml-1 text-base text-[#758078]">/ 10.00</span></span>
+                <span className="serif text-3xl">7.5<span className="ml-1 text-base text-[#758078]">/ 10.00</span></span>
                 <span className="mono text-[9px] uppercase tracking-[.13em] text-[#717873]">Sep 2023 — Present</span>
               </div>
             </article>
