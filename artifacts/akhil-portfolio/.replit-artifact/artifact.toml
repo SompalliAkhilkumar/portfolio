@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Akhil Kumar — Portfolio"
+description = "A personal portfolio for Sompalli Akhil Kumar, showcasing his computer science education, machine learning projects, internship experience, skills, and certifications through an architectural 3D-inspired web experience."
+version = "1.0.0"
+id = "artifacts/akhil-portfolio"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25436
+
+[services.development]
+run = "pnpm --filter @workspace/akhil-portfolio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/akhil-portfolio", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/akhil-portfolio/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25436"
+BASE_PATH = "/"
